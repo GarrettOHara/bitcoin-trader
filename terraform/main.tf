@@ -49,9 +49,10 @@ data "archive_file" "archive" {
   output_path = "source_code.zip"
 }
 
-resource "aws_lambda_function" "this" {
+resource "aws_lambda_function" "lambda" {
   # checkov:skip=CKV_AWS_50: No x-ray tracing
   # checkov:skip=CKV_AWS_116: No DLQ
+  # checkov:skip=CKV_AWS_115: No concurrent executions
   # checkov:skip=CKV_AWS_117: Not inside VPC
   # checkov:skip=CKV_AWS_272: No code signing
   filename      = "source_code.zip"
@@ -95,7 +96,7 @@ resource "aws_iam_policy" "event_bridge_policy" {
                 "lambda:InvokeFunction"
             ],
             "Resource": [
-                "${aws_lambda_function.this.arn}"
+                "${aws_lambda_function.lambda.arn}"
             ]
         }
     ]
@@ -109,16 +110,18 @@ resource "aws_scheduler_schedule_group" "schedule_group" {
 
 resource "aws_scheduler_schedule" "schedule" {
   # checkov:skip=CKV_AWS_297: Not using CMK
-  name                = "${var.name}-schedule"
-  group_name          = aws_scheduler_schedule_group.schedule_group
-  schedule_expression = "cron(15 10 * * ? *)"
+  name       = "${var.name}-schedule"
+  group_name = aws_scheduler_schedule_group.schedule_group
+
+  # Schedule expression translates to every day at 16:00 UTC / 08:00 PST
+  schedule_expression = "cron(00 16 * * ? *)"
 
   flexible_time_window {
     mode = var.flexible_time_window
   }
 
   target {
-    arn      = aws_lambda_function.this.arn
+    arn      = aws_lambda_function.lambda.arn
     role_arn = aws_iam_role.event_bridge_scheduler.arn
   }
 }

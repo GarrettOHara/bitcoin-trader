@@ -1,0 +1,11 @@
+# MAC OS ignore
+.DS_Store
+
+# Terraform ignore
+**/.terraform/*
+**/*.tfstate*
+**/.terraform.lock.hcl
+
+# Terraform plan files
+*.tfplan
+
