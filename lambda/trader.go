@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -65,12 +64,7 @@ func LambdaHandler(request events.CloudWatchEvent) error {
 	// Close HTTP client when function ends
 	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	fmt.Println(string(body))
+	spew.Dump(res.Body)
 	return nil
 }
 
