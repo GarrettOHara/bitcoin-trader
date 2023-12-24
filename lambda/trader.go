@@ -14,6 +14,7 @@ import (
 func LambdaHandler(request events.CloudWatchEvent) error {
 	fmt.Printf("received event of type %q\n", request.DetailType)
 
+	// Spew handles complex payloads/string objects with ease
 	// https://pkg.go.dev/github.com/davecgh/go-spew/spew
 	spew.Dump(request)
 
