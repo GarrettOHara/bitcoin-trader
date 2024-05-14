@@ -4,10 +4,12 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/square/go-jose.v2"
@@ -32,6 +34,10 @@ func init() {
 	}
 
 	keySecret = os.Getenv("COINBASE_PRIVATE_KEY")
+
+	// Required when grabbing key as envronment variable because of formatting
+	keySecret = strings.ReplaceAll(keySecret, "\\n", "\n") // Replace "\\n" with "\n"
+
 	if keySecret == "" {
 		fmt.Println("COINBASE_PRIVATE_KEY environment variable not set.")
 	}
@@ -46,12 +52,11 @@ func generateJtw() (string, error) {
 	uri := fmt.Sprintf("%s %s%s", requestMethod, requestHost, requestPath)
 	block, _ := pem.Decode([]byte(keySecret))
 	if block == nil {
-		return "", fmt.Errorf("jwt: Could not decode private key")
+		return "", errors.New("failed to decode PEM block")
 	}
-
 	key, err := x509.ParseECPrivateKey(block.Bytes)
 	if err != nil {
-		return "", fmt.Errorf("jwt: %w", err)
+		return "", fmt.Errorf("error parsing EC private key: %w", err)
 	}
 
 	sig, err := jose.NewSigner(
