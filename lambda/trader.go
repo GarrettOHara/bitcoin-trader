@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
-	"strings"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -18,54 +20,68 @@ func LambdaHandler(request events.CloudWatchEvent) error {
 	// https://pkg.go.dev/github.com/davecgh/go-spew/spew
 	spew.Dump(request)
 
-	url := "https://api.coinbase.com/api/v3/brokerage/orders"
-	method := "POST"
-
 	const tradeAmount = 1
-	const clientOrderId = "xxxx-xxxx-xxxx-xxxx"
-
-	payloadMap := map[string]interface{}{
-		"side": "BUY",
-		"order_configuration": map[string]interface{}{
-			"market_market_ioc": map[string]interface{}{
-				"quote_size": fmt.Sprintf("%d", tradeAmount),
-			},
-		},
-		"product_id":      "BTC-USD",
-		"client_order_id": clientOrderId,
+	url := "https://api.coinbase.com/api/v3/brokerage/orders"
+	clientOrderId := generateUUID()
+	requestJwt, err := generateJtw()
+	if err != nil {
+		fmt.Println("Error generating jwt: ", err)
+		os.Exit(1)
 	}
+
+	orderConfig := OrderConfiguration{
+		MarketMarketIOC: MarketMarketIOC{
+			QuoteSize: fmt.Sprintf("%d", tradeAmount),
+		},
+	}
+
+	order := Order{
+		Side:               "BUY",
+		OrderConfiguration: orderConfig,
+		ProductID:          "BTC-USD",
+		ClientOrderID:      clientOrderId,
+	}
+
+	printOrderConfig(order)
 
 	// Convert the map to a JSON string
-	payload, err := json.Marshal(payloadMap)
+	payload, err := json.Marshal(order)
 	if err != nil {
-		fmt.Println("Error encoding JSON:", err)
-		return err
+		fmt.Println("Error encoding Request payload:", err)
+		os.Exit(1)
 	}
 
-	payloadReader := strings.NewReader(string(payload))
+	// Create a new HTTP request with POST method
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+	if err != nil {
+		fmt.Println("Error creating request:", err)
+		os.Exit(1)
+	}
 
-	// Instantiate http client and construct POST Request
+	// Set headers
+	req.Header.Set("Authorization", "Bearer "+requestJwt)
+	req.Header.Set("Content-Type", "application/json")
+
+	// Perform the HTTP POST request
 	client := &http.Client{}
-	req, err := http.NewRequest(method, url, payloadReader)
-
+	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		fmt.Println("Error sending request:", err)
+		os.Exit(1)
 	}
+	defer resp.Body.Close()
 
-	// Add HTTP request headers
-	req.Header.Add("Content-Type", "application/json")
-
-	// Send HTTP request
-	res, err := client.Do(req)
+	// Process the response as needed
+	fmt.Println("Response Status:", resp.Status)
+	// Read the response body and print it
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println(err)
-		return err
+		fmt.Println("Error reading response body:", err)
+		os.Exit(1)
 	}
-	// Close HTTP client when function ends
-	defer res.Body.Close()
+	fmt.Println("Response Body:", string(body))
 
-	spew.Dump(res.Body)
+	spew.Dump(resp.Body)
 	return nil
 }
 
