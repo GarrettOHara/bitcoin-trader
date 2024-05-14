@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 
@@ -14,10 +15,12 @@ import (
 )
 
 func LambdaHandler(request events.CloudWatchEvent) error {
-	fmt.Printf("received event of type %q\n", request.DetailType)
+	// Perhaps need %v or %s
+	log.Printf("received event of type %q\n", request.DetailType)
 
 	// Spew handles complex payloads/string objects with ease
 	// https://pkg.go.dev/github.com/davecgh/go-spew/spew
+	// Compare output of this to log and use better one
 	spew.Dump(request)
 
 	const tradeAmount = 1
@@ -25,7 +28,7 @@ func LambdaHandler(request events.CloudWatchEvent) error {
 	clientOrderId := generateUUID()
 	requestJwt, err := generateJtw()
 	if err != nil {
-		fmt.Println("Error generating jwt: ", err)
+		log.Printf("Error generating jwt: %v", err)
 		os.Exit(1)
 	}
 
@@ -47,14 +50,14 @@ func LambdaHandler(request events.CloudWatchEvent) error {
 	// Convert the map to a JSON string
 	payload, err := json.Marshal(order)
 	if err != nil {
-		fmt.Println("Error encoding Request payload:", err)
+		log.Printf("Error encoding Request payload: %v", err)
 		os.Exit(1)
 	}
 
 	// Create a new HTTP request with POST method
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
-		fmt.Println("Error creating request:", err)
+		log.Printf("Error creating request: %v", err)
 		os.Exit(1)
 	}
 
@@ -66,21 +69,22 @@ func LambdaHandler(request events.CloudWatchEvent) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending request:", err)
+		log.Printf("Error sending request: %v", err)
 		os.Exit(1)
 	}
 	defer resp.Body.Close()
 
-	// Process the response as needed
-	fmt.Println("Response Status:", resp.Status)
+	log.Printf("Response Status: %d", resp.Status)
+
 	// Read the response body and print it
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Error reading response body:", err)
+		log.Printf("Error reading response body: %v", err)
 		os.Exit(1)
 	}
-	fmt.Println("Response Body:", string(body))
+	log.Printf("Response Body: %s", string(body))
 
+	// Compare the output of this and log and use the better one
 	spew.Dump(resp.Body)
 	return nil
 }
