@@ -43,11 +43,11 @@ resource "aws_iam_role_policy" "lambda" {
 EOF
 }
 
-data "archive_file" "archive" {
-  type        = "zip"
-  source_file = "../lambda/lambda_function.py"
-  output_path = "source_code.zip"
-}
+# data "archive_file" "archive" {
+#   type        = "zip"
+#   source_file = "../lambda/lambda_function.py"
+#   output_path = "source_code.zip"
+# }
 
 resource "aws_lambda_function" "lambda" {
   # checkov:skip=CKV_AWS_50: No x-ray tracing

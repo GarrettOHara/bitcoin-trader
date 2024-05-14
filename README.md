@@ -10,4 +10,3 @@ The goal of this project is to enable automated Dollar Cost Averaging on BTC wit
 
 *source*
 https://forums.coinbasecloud.dev/t/market-order-example-on-how-to-use-quote-size-and-base-size/2640/2
-

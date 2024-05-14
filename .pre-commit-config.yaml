@@ -1,4 +1,8 @@
 repos:
+  - repo: https://github.com/dnephin/pre-commit-golang
+    rev: v0.5.1
+    hooks:
+      - id: go-fmt
   - repo: https://github.com/Bahjat/pre-commit-golang
     rev: v1.0.3
     hooks:
@@ -15,6 +19,7 @@ repos:
 
       # Common errors
       - id: end-of-file-fixer
+        exclude: .infracost
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
         exclude: CHANGELOG.md
@@ -34,7 +39,8 @@ repos:
     hooks:
       - id: infracost_breakdown
         args:
-          - --args=--path=./examples/complete
+          # - --args=--path=./examples/complete
+          - --args=--path=./terraform
         verbose: true # Always show costs
       - id: terraform_fmt
         args:

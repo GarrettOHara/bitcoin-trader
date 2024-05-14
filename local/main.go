@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -21,12 +22,27 @@ func generateUUID() []byte {
 	return idBytes
 }
 
-func debugPrint(payloadMap map[string]interface{}) {
+func printOrderConfig(order Order) {
+	// Convert order struct to map[string]interface{}
+	payloadMap := map[string]interface{}{
+		"side": order.Side,
+		"order_configuration": map[string]interface{}{
+			"market_market_ioc": map[string]interface{}{
+				"quote_size": order.OrderConfiguration.MarketMarketIOC.QuoteSize,
+			},
+		},
+		"product_id":      order.ProductID,
+		"client_order_id": fmt.Sprintf("%x", order.ClientOrderID),
+	}
+
+	// Marshal the map to JSON with indentation
 	prettyPayload, err := json.MarshalIndent(payloadMap, "", "  ")
 	if err != nil {
 		fmt.Println("Error encoding JSON:", err)
 		os.Exit(1)
 	}
+
+	// Print the JSON payload
 	fmt.Println(string(prettyPayload))
 }
 
@@ -44,20 +60,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	payloadMap := map[string]interface{}{
-		"side": "BUY",
-		"order_configuration": map[string]interface{}{
-			"market_market_ioc": map[string]interface{}{
-				"quote_size": fmt.Sprintf("%d", tradeAmount),
-			},
+	orderConfig := OrderConfiguration{
+		MarketMarketIOC: MarketMarketIOC{
+			QuoteSize: fmt.Sprintf("%d", tradeAmount),
 		},
-		"product_id":      "BTC-USD",
-		"client_order_id": clientOrderId,
 	}
-	debugPrint(payloadMap)
+
+	order := Order{
+		Side:               "BUY",
+		OrderConfiguration: orderConfig,
+		ProductID:          "BTC-USD",
+		ClientOrderID:      clientOrderId,
+	}
+
+	printOrderConfig(order)
 
 	// Convert the map to a JSON string
-	payload, err := json.Marshal(payloadMap)
+	payload, err := json.Marshal(order)
 	if err != nil {
 		fmt.Println("Error encoding Request payload:", err)
 		os.Exit(1)
@@ -85,4 +104,11 @@ func main() {
 
 	// Process the response as needed
 	fmt.Println("Response Status:", resp.Status)
+	// Read the response body and print it
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		os.Exit(1)
+	}
+	fmt.Println("Response Body:", string(body))
 }

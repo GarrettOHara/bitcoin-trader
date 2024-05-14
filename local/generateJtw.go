@@ -34,7 +34,6 @@ func init() {
 	}
 
 	keySecret = os.Getenv("COINBASE_PRIVATE_KEY")
-
 	// Required when grabbing key as envronment variable because of formatting
 	keySecret = strings.ReplaceAll(keySecret, "\\n", "\n") // Replace "\\n" with "\n"
 
